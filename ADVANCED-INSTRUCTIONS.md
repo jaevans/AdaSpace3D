@@ -1,23 +1,17 @@
-# AdaSpace3D - Manual Build & Flash Instructions
-
-These instructions are for users who want to build and flash the firmware manually without using `FLASH.bat` (which does everything described below automatically).
+# AdaSpace3D - Build & Flash Instructions
 
 ---
 
 ## Prerequisites
 
-1. **Download Arduino CLI** (v1.1.1 or later)  
-   [arduino-cli_1.1.1_Windows_64bit.zip](https://github.com/arduino/arduino-cli/releases/download/v1.1.1/arduino-cli_1.1.1_Windows_64bit.zip)
+Install **Arduino CLI** (v1.1.1 or later):
 
-2. **Extract** `arduino-cli.exe` somewhere accessible (e.g., `C:\arduino-cli\`)
-
-3. **Add it to your PATH**, or use the full path in commands below
+- macOS: `brew install arduino-cli`
+- Linux / Windows: download a release from [arduino/arduino-cli releases](https://github.com/arduino/arduino-cli/releases) and put it on your PATH
 
 ---
 
 ## One-Time Setup
-
-Open a terminal (PowerShell or CMD) and run these commands:
 
 ```bash
 # Initialize Arduino CLI config
@@ -44,25 +38,15 @@ arduino-cli lib install "Adafruit NeoPixel"
 
 ### Step 1: Create a Clean Sketch Folder
 
-Create a folder named `AdaSpace3D` and copy **ONLY** these two files into it:
+Create a folder named `AdaSpace3D` and copy into it:
 - `AdaSpace3D.ino`
-- `UserConfig.h`
+- every `.h` file (`UserConfig.h`, `ConfigPage.h`, `VirtualDrive.h`)
+
+Do not copy the `test/` folder.
 
 ### Step 2: Compile with Custom USB Descriptors
 
 Navigate to the **parent directory** of your `AdaSpace3D` sketch folder, then run the appropriate command for your shell:
-
-#### CMD (Windows Command Prompt)
-
-```cmd
-arduino-cli compile --fqbn "rp2040:rp2040:adafruit_qtpy:usbstack=tinyusb" --build-property "build.vid=0x256f" --build-property "build.pid=0xc631" --build-property "build.usbvid=-DUSBD_VID=0x256f" --build-property "build.usbpid=-DUSBD_PID=0xc631" --build-property "build.usb_product=\"SpaceMouse Pro Wireless\"" --build-property "build.usb_manufacturer=\"3Dconnexion\"" --output-dir "./output" "./AdaSpace3D"
-```
-
-#### PowerShell
-
-```powershell
-arduino-cli compile --fqbn "rp2040:rp2040:adafruit_qtpy:usbstack=tinyusb" --build-property "build.vid=0x256f" --build-property "build.pid=0xc631" --build-property "build.usbvid=-DUSBD_VID=0x256f" --build-property "build.usbpid=-DUSBD_PID=0xc631" --build-property "build.usb_product=`"SpaceMouse Pro Wireless`"" --build-property "build.usb_manufacturer=`"3Dconnexion`"" --output-dir "./output" "./AdaSpace3D"
-```
 
 #### Linux / macOS
 
@@ -78,25 +62,48 @@ arduino-cli compile --fqbn "rp2040:rp2040:adafruit_qtpy:usbstack=tinyusb" \
   "./AdaSpace3D"
 ```
 
+#### CMD (Windows Command Prompt)
+
+```cmd
+arduino-cli compile --fqbn "rp2040:rp2040:adafruit_qtpy:usbstack=tinyusb" --build-property "build.vid=0x256f" --build-property "build.pid=0xc631" --build-property "build.usbvid=-DUSBD_VID=0x256f" --build-property "build.usbpid=-DUSBD_PID=0xc631" --build-property "build.usb_product=\"SpaceMouse Pro Wireless\"" --build-property "build.usb_manufacturer=\"3Dconnexion\"" --output-dir "./output" "./AdaSpace3D"
+```
+
+#### PowerShell
+
+```powershell
+arduino-cli compile --fqbn "rp2040:rp2040:adafruit_qtpy:usbstack=tinyusb" --build-property "build.vid=0x256f" --build-property "build.pid=0xc631" --build-property "build.usbvid=-DUSBD_VID=0x256f" --build-property "build.usbpid=-DUSBD_PID=0xc631" --build-property "build.usb_product=`"SpaceMouse Pro Wireless`"" --build-property "build.usb_manufacturer=`"3Dconnexion`"" --output-dir "./output" "./AdaSpace3D"
+```
+
 This creates a `.uf2` file in the `./output` folder.
 
 ---
 
 ## Flashing the Firmware
 
-### Step 1: Enter Bootloader Mode on Your QT Py RP2040
+### Step 1: Put the Mouse in Bootloader Mode
 
-1. **HOLD** the BOOT button
-2. **PRESS and RELEASE** the RESET button
-3. **RELEASE** the BOOT button
+Any one of these makes a drive called `RPI-RP2` appear:
 
-A new drive called `RPI-RP2` will appear in your file manager.
+- **Hold the lowest- and highest-numbered buttons while plugging the mouse in** (A0 and A3 with the default mapping; after remapping, the ones you saved with the lowest and highest numbers). Release them once `RPI-RP2` appears, or the freshly flashed firmware will see them held and return to the bootloader.
+- **Serial command:** connect to the mouse's serial port and send `bootloader`, or use the *Reboot to bootloader* button on the config page.
+- **1200-baud touch:** `stty -f /dev/cu.usbmodemXXXX 1200` on macOS (`stty -F /dev/ttyACMX 1200` on Linux).
+- **Board buttons (first flash, or if the firmware is broken):** hold BOOT, press and release RESET, release BOOT.
 
 ### Step 2: Copy the Firmware
 
-Copy the `AdaSpace3D.ino.uf2` file from the `./output` folder to the `RPI-RP2` drive.
+Copy `AdaSpace3D.ino.uf2` from the `./output` folder to the `RPI-RP2` drive.
 
 The device will automatically restart with the new firmware installed.
+
+---
+
+## Testing the Config Drive (macOS)
+
+`test/run.sh` builds the config-mode drive image on your computer, mounts it read-only, and checks that `CONFIG.HTM` and the `ADASPACE` volume name come out exactly as the firmware serves them. It also checks that a deliberately corrupted image fails to mount, so a pass actually means something.
+
+```bash
+test/run.sh
+```
 
 ---
 
@@ -124,10 +131,13 @@ These build properties make the device appear as a 3DConnexion SpaceMouse:
 ### "Library not found" error
 - Run the lib install commands from the [One-Time Setup](#one-time-setup) section
 
+### "ConfigPage.h: No such file or directory"
+- Copy every `.h` file into the sketch folder, not just `UserConfig.h`
+
 ### "Permission denied" when copying UF2
 - Ensure the `RPI-RP2` drive is mounted and writable
 - Try running your terminal as Administrator (Windows)
 
 ### Device not recognized by 3DConnexion driver
 - Verify the USB VID/PID are correctly set in the compile command
-- Check Device Manager to see what VID/PID the device reports
+- Check what VID/PID the device reports (System Information on macOS, Device Manager on Windows)

@@ -43,13 +43,20 @@
 #define CONFIG_DEADZONE        1.0    
 #define CONFIG_ZOOM_DEADZONE   2.5  
 
+// --- RUNTIME DEFAULTS ---
+// Used until settings are saved from the config page (hold button 1 while
+// plugging in). Saved settings override these, even after reflashing.
+#define CONFIG_ORIENTATION     0      // 0, 90, 180 or 270 (sensor rotation)
+#define CONFIG_INVERT_X        0      // 0 or 1
+#define CONFIG_INVERT_Y        0      // 0 or 1
+#define CONFIG_BUTTON1_HID     13     // HID button (1-32) sent by each physical button
+#define CONFIG_BUTTON2_HID     14
+#define CONFIG_BUTTON3_HID     15
+#define CONFIG_BUTTON4_HID     16
+
 // --- USB IDENTIFICATION ---
 // 0x046d / 0xc626 = SpaceNavigator (Best for DIY compatibility)
 #define USB_VID             0x256f
 #define USB_PID             0xc631
-
-// --- DEBUG MODE ---
-// MUST be false for normal use. True = Serial Monitor but NO Driver.
-#define DEBUG_MODE          false
 
 #endif // USER_CONFIG_H

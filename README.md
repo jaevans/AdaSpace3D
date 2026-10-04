@@ -31,7 +31,8 @@ This is also the place where we hang out to talk, make suggestions, and dream ab
     * **Dual Drive:** Supports both Addressable (NeoPixel) and Standard LEDs simultaneously.
     * **Smart Feedback:** LED glows dim when idle and brightens as you move the knob.
 * **5DOF Navigation:** Smooth X, Y, Z translation + Pitch and Roll.
-* **Bulletproof Flasher:** Includes a custom "One-Click" build script that handles libraries, compilers, and upload automatically.
+* **Browser Config Page:** Set sensor orientation and button mapping from a page the mouse serves itself. No recompile.
+* **No-Disassembly Updates:** Enter the bootloader with a button combo or a serial command instead of the board's BOOT button.
 
 > [!IMPORTANT]
 > **Hardware Limitation:** Spin/Twist rotation is **not functional** due to the physics of the current sensor setup. For best results, configure your 3DConnexion driver to use either **Pan/Zoom** or **Rotation** mode—not both simultaneously. Use the programmable buttons to toggle between these modes on-the-fly.
@@ -45,35 +46,42 @@ This firmware is designed for the **Adafruit QT Py RP2040**, but will possibly w
 | Component | Pin (Default) | Notes |
 | :--- | :--- | :--- |
 | **Sensor** | **TLx493D** | Auto-detects on `Wire1` (Stemma) or `Wire` (Solder). |
-| **Buttons** | A0, A1, A2, A3 | Mapped to HID Buttons 13, 14, 15, 16. |
+| **Buttons** | A0, A1, A2, A3 | Mappable to any HID button 1-32 (defaults 13, 14, 15, 16). |
 | **NeoPixel** | GPIO 4 | Addressable RGB Strip (WS2812). |
 | **Simple LED** | GPIO 3 | Standard 2-leg LED (PWM brightness). |
 
 > **Note:** The firmware drives **GPIO 3 and GPIO 4 simultaneously**. You can connect your LED to either pin depending on your build, and change the behavior in `UserConfig.h`.
 
 ---
-## 🚀 Quick Start (Windows)
+## 🚀 Building & Flashing
 
-We have included a "One-Click" tool so you don't need to install Arduino IDE or mess with libraries manually.
+See [ADVANCED-INSTRUCTIONS.md](ADVANCED-INSTRUCTIONS.md) for the `arduino-cli` setup and compile command.
 
-1.  **Download** this repository as a ZIP and extract it.
-2.  Open `UserConfig.h` in any text editor to customize your settings (Sensitivity, LED Colors, etc.).
-3.  **Plug in** your RP2040 device.
-4.  **Enter Bootloader Mode:**
-    * Hold down the **BOOT** button.
-    * Press and release the **RESET** button.
-    * Release the **BOOT** button.
-    * *A new drive named `RPI-RP2` should appear on your computer.*
-5.  Double-click **`FLASH.bat`**.
+### Updating without opening the case
 
-The script will automatically:
-* Download the compiler (Arduino CLI).
-* Install the RP2040 Core and Infineon Sensor libraries.
-* Compile the firmware with the correct "SpaceMouse" USB ID.
-* Detect the `RPI-RP2` drive and flash it instantly.
+Once this firmware is installed, any of these brings up the `RPI-RP2` drive to copy a new `.uf2` onto:
 
-> [!TIP]
-> For manual builds without the script (Linux/macOS/advanced users), see [ADVANCED-INSTRUCTIONS.md](ADVANCED-INSTRUCTIONS.md).
+* Hold **the lowest- and highest-numbered buttons** together while plugging the mouse in (with the default mapping, the buttons on A0 and A3). Let go once `RPI-RP2` appears: if they are still held when the new firmware starts, it goes straight back to the bootloader.
+* Click **Reboot to bootloader** on the config page (or send `bootloader` over serial).
+* Run `stty -f /dev/cu.usbmodemXXXX 1200` (macOS) or `stty -F /dev/ttyACMX 1200` (Linux).
+
+The board's BOOT + RESET buttons are only needed for the very first flash.
+
+---
+
+## 🧭 Config Page
+
+Hold **the lowest-numbered button** while plugging the mouse in (with the default mapping, the one on A0; after remapping, whichever you saved with the lowest number). The LEDs flash blue twice, and a read-only drive named `ADASPACE` appears with `CONFIG.HTM` on it. Open that file in **Chrome or Edge**, click **Connect**, and pick the mouse's serial port.
+
+| Setting | Values | What it does |
+| :--- | :--- | :--- |
+| **Sensor rotation** | 0°, 90°, 180°, 270° | Corrects a sensor mounted sideways. Applies to both movement and rotation. |
+| **Invert X / Y** | on / off | Corrects a mirrored (upside-down) sensor. |
+| **Switch 1-4** | 1-32 | Which HID button each physical switch (A0-A3) sends. The saved numbering also decides which switches the plug-in combos use. |
+
+**Apply** takes effect immediately; **Save to device** keeps it after unplugging. **Live view** draws an arrow showing the movement being sent, which makes it easy to find the right rotation. Saved settings survive firmware updates; **Restore defaults** returns to the values in `UserConfig.h`.
+
+The page talks to the mouse over its USB serial port, which is present in normal mode too, so a saved copy of `CONFIG.HTM` works without config mode. The drive is just a convenient place to get the page.
 
 ---
 
