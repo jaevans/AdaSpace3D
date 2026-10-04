@@ -5,7 +5,7 @@
 
 // Served as CONFIG.HTM on the config-mode drive (see VirtualDrive.h).
 // Talks to the firmware's serial command set; PROTOCOL_VERSION in
-// AdaSpace3D.ino must match the "proto=" value checked below.
+// AdaSpace3D.ino must match the "proto=" value checked below (2).
 static const char CONFIG_PAGE[] = R"ADAPAGE(<!doctype html>
 <html lang="en">
 <head>
@@ -35,6 +35,9 @@ button:disabled { opacity:.5; cursor:default; }
 #status { margin-top:8px; color:var(--muted); min-height:1.4em; }
 #status.err { color:var(--err); }
 canvas { display:block; margin:8px auto 0; max-width:100%; }
+.sw { display:flex; align-items:center; gap:8px; }
+.dot { width:12px; height:12px; border-radius:50%; border:1px solid var(--line); flex:none; }
+.dot.on { background:var(--accent); border-color:var(--accent); }
 </style>
 </head>
 <body>
@@ -64,12 +67,12 @@ canvas { display:block; margin:8px auto 0; max-width:100%; }
 <section>
   <h2>Buttons</h2>
   <div class="grid">
-    <div class="row"><label for="button1">Switch 1 (A0)</label><input type="number" id="button1" min="1" max="32" disabled></div>
-    <div class="row"><label for="button2">Switch 2 (A1)</label><input type="number" id="button2" min="1" max="32" disabled></div>
-    <div class="row"><label for="button3">Switch 3 (A2)</label><input type="number" id="button3" min="1" max="32" disabled></div>
-    <div class="row"><label for="button4">Switch 4 (A3)</label><input type="number" id="button4" min="1" max="32" disabled></div>
+    <div class="row"><span class="sw"><span class="dot" id="dot1"></span><label for="button1">Switch 1 (A0)</label></span><input type="number" id="button1" min="1" max="32" disabled></div>
+    <div class="row"><span class="sw"><span class="dot" id="dot2"></span><label for="button2">Switch 2 (A1)</label></span><input type="number" id="button2" min="1" max="32" disabled></div>
+    <div class="row"><span class="sw"><span class="dot" id="dot3"></span><label for="button3">Switch 3 (A2)</label></span><input type="number" id="button3" min="1" max="32" disabled></div>
+    <div class="row"><span class="sw"><span class="dot" id="dot4"></span><label for="button4">Switch 4 (A3)</label></span><input type="number" id="button4" min="1" max="32" disabled></div>
   </div>
-  <p class="sub" style="margin:8px 0 0">At plug-in, the switch with the lowest number enters config mode, and the lowest and highest together enter the bootloader. Takes effect once saved.</p>
+  <p class="sub" style="margin:8px 0 0">At plug-in, the switch with the lowest number enters config mode, and the lowest and highest together enter the bootloader. Takes effect once saved. With Live view on, the dot beside a switch lights while it is pressed.</p>
 </section>
 
 <section>
@@ -109,10 +112,15 @@ function setEnabled(on) {
   $("connect").textContent = on ? "Disconnect" : "Connect";
 }
 
+function showPressed(bits) {
+  for (let n = 1; n <= 4; n++) $("dot" + n).classList.toggle("on", (bits >> (n - 1)) & 1);
+}
+
 function onLine(line) {
   if (line.startsWith("xy ")) {
     const p = line.split(" ");
     lastXY = [parseFloat(p[1]), parseFloat(p[2])];
+    showPressed(parseInt(p[3], 10) || 0);
     draw();
     return;
   }
@@ -219,7 +227,7 @@ async function connect() {
     readLoop();
 
     const info = await waitForInfo();
-    if (!info || !info.includes("proto=1")) {
+    if (!info || !info.includes("proto=2")) {
       await disconnect();
       status(info ? "Unsupported firmware: " + info : "That port is not an AdaSpace3D.", true);
       return;
@@ -237,6 +245,7 @@ async function connect() {
 // the Web Serial spec requires: cancel the reader, close the writer, then close.
 async function disconnect() {
   streaming = false;
+  showPressed(0);
   $("live").textContent = "Start";
   setEnabled(false);
   const p = port;
@@ -280,7 +289,7 @@ $("live").onclick = () => run(async () => {
   streaming = !streaming;
   await expectOk(streaming ? "stream on" : "stream off");
   $("live").textContent = streaming ? "Stop" : "Start";
-  if (!streaming) { lastXY = [0, 0]; draw(); }
+  if (!streaming) { lastXY = [0, 0]; draw(); showPressed(0); }
 });
 
 function draw() {
