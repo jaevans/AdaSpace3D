@@ -18,8 +18,8 @@
 #define HANG_THRESHOLD 50              // consecutive identical readings before reset
 #define PREVENTIVE_RESET_INTERVAL 0    // Set to 300000 (5 mins) if you want periodic resets
 
-// Serial protocol revision; ConfigPage.h checks for "proto=1".
-#define PROTOCOL_VERSION   1
+// Serial protocol revision; ConfigPage.h checks for "proto=2".
+#define PROTOCOL_VERSION   2
 // Bump when the Settings layout changes so old EEPROM contents are ignored.
 #define SETTINGS_VERSION   1
 #define SETTINGS_MAGIC     0x33414441UL   // "ADA3" as little-endian bytes
@@ -568,14 +568,18 @@ void serviceSerial() {
   }
 }
 
+// Runs without sensor data too (x/y stay 0), so the page can still show
+// which physical switch is pressed when no sensor was found.
 void serviceStream() {
-  if (!streaming || !streamHasData) return;
+  if (!streaming) return;
   if (millis() - lastStreamMs < STREAM_INTERVAL_MS) return;
   lastStreamMs = millis();
+  uint8_t pressed = 0;
+  for(uint8_t i = 0; i < 4; i++) if (digitalRead(physPins[i]) == LOW) pressed |= 1 << i;
   char buf[48], xs[16], ys[16];
-  formatCenti(xs, sizeof(xs), streamX);
-  formatCenti(ys, sizeof(ys), streamY);
-  snprintf(buf, sizeof(buf), "xy %s %s", xs, ys);
+  formatCenti(xs, sizeof(xs), streamHasData ? streamX : 0.0);
+  formatCenti(ys, sizeof(ys), streamHasData ? streamY : 0.0);
+  snprintf(buf, sizeof(buf), "xy %s %s %u", xs, ys, pressed);
   writeLine(buf);  // dropped if it does not fit
 }
 
